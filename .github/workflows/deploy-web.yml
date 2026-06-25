@@ -8,7 +8,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # нужно для push в ветку gh-pages
+      contents: write
 
     steps:
       - name: Checkout
@@ -19,10 +19,6 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # Blazor WASM использует <base href> для формирования URL ресурсов.
-      # На GitHub Pages приложение живёт по адресу /REPO_NAME/, а не в корне —
-      # без правильного base href браузер ищет _framework/blazor.webassembly.js
-      # относительно корня домена и получает 404.
       - name: Set base href for GitHub Pages
         run: |
           REPO="${{ github.event.repository.name }}"
@@ -39,8 +35,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./web-publish/wwwroot
-          # enable_jekyll: false (по умолчанию) автоматически добавляет .nojekyll.
-          # Без .nojekyll GitHub Pages игнорирует папки, начинающиеся с _ :
-          # Blazor кладёт весь runtime в _framework/ — без этого флага приложение
-          # не загрузится вообще.
           enable_jekyll: false

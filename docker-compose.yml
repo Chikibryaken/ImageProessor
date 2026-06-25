@@ -1,15 +1,10 @@
 services:
   api:
     build:
-      context: .                              # корень solution — Docker видит все папки проекта
+      context: .
       dockerfile: ImageProcessor.Api/Dockerfile
     ports:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      # http внутри контейнера, не https:
-      # В продакшне HTTPS терминируется на уровне reverse proxy (nginx, Caddy,
-      # Railway, Render, Cloudflare и т.д.) — он держит сертификат и передаёт
-      # трафик контейнеру по HTTP. Контейнер не управляет TLS-сертификатами:
-      # это упрощает деплой, ротацию сертификатов и горизонтальное масштабирование.
       - ASPNETCORE_URLS=http://+:8080

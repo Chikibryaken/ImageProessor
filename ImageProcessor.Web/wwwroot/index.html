@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ImageProcessor</title>
+    <base href="/" />
+    <link rel="stylesheet" href="app.css" />
+    <!-- Blazor автоматически генерирует этот файл из *.razor.css компонентов (CSS isolation) -->
+    <link rel="stylesheet" href="ImageProcessor.Web.styles.css" />
+</head>
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Произошла необработанная ошибка.
+        <a href="." class="reload">Перезагрузить</a>
+        <span class="dismiss">✕</span>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <!-- Подключаем JS interop после blazor.webassembly.js, чтобы window был готов -->
+    <script src="js/imageInterop.js"></script>
+</body>
+</html>

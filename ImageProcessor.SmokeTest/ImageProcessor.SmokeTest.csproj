@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!--
+      КРИТИЧЕСКИ ВАЖНО: должно совпадать с разрядностью C++ DLL.
+      AnyCPU на 64-битной Windows тоже запустится как x64, но если
+      установлен Prefer32Bit=true (дефолт для некоторых шаблонов),
+      процесс стартует как 32-bit и LoadLibrary упадёт с BadImageFormatException.
+      Явный x64 исключает эту ловушку.
+    -->
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+
+  <!--
+    Говорим MSBuild скопировать нативную DLL рядом с .exe при каждой сборке.
+    $(MSBuildThisFileDirectory) — абсолютный путь к папке этого .csproj.
+    После сборки C++ проекта DLL лежит в <solution>\x64\<Config>\.
+    VS кладёт туда по умолчанию; если изменишь OutputDirectory в vcxproj — поправь путь здесь.
+  -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\x64\$(Configuration)\ImageProcessor.Native.dll"
+          Link="ImageProcessor.Native.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"              Version="17.12.0" />
+    <PackageReference Include="xunit"                               Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio"           Version="2.8.2"
+                      IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"
+                      PrivateAssets="all" />
+    <!--
+      Microsoft.AspNetCore.Mvc.Testing поднимает реальный ASP.NET Core pipeline
+      в памяти через TestServer — без сетевого порта, без реального HTTP.
+      WebApplicationFactory<TEntryPoint> использует тот же Program.cs, что и продакшн.
+    -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"    Version="10.0.9" />
+    <PackageReference Include="SixLabors.ImageSharp"                Version="3.1.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ImageProcessor.Api\ImageProcessor.Api.csproj" />
+  </ItemGroup>
+
+  <!--
+    Интеграционные тесты поднимают реальный Api через WebApplicationFactory,
+    который регистрирует NativeImageProcessor (реальный P/Invoke).
+    Поэтому DLL обязана лежать рядом с тестовым бинарником.
+
+    Почему эту строку нужно добавить именно сюда, а не полагаться на Api.csproj:
+    <None CopyToOutputDirectory> из referenced project НЕ копируется транзитивно —
+    MSBuild считает это артефактом сборки проекта, а не его публичным выходом.
+  -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\x64\$(Configuration)\ImageProcessor.Native.dll"
+          Link="ImageProcessor.Native.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

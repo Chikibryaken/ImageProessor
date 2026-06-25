@@ -1,0 +1,158 @@
+@page "/"
+@inject HttpClient Http
+@inject IJSRuntime JS
+
+<h1>Обработка изображений</h1>
+
+@if (_error != null)
+{
+    <div class="error-box" role="alert">@_error</div>
+}
+
+<div class="controls">
+    <InputFile OnChange="OnFileSelected" accept=".png,.jpg,.jpeg" disabled="@_busy" />
+
+    <select @bind="_filter" disabled="@_busy" class="filter-select">
+        <option value="invert">Инверсия</option>
+        <option value="grayscale">Оттенки серого</option>
+        <option value="blur">Размытие</option>
+    </select>
+
+    @if (_filter == "blur")
+    {
+        <label class="blur-strength">
+            Сила: <span>@_blurStrength</span>
+            <input type="range" min="1" max="20" @bind="_blurStrength" @bind:event="oninput" />
+        </label>
+    }
+
+    <button class="btn-apply" @onclick="ApplyFilter"
+            disabled="@(_originalBytes == null || _busy)">
+        @(_busy ? "Обработка..." : "Применить фильтр")
+    </button>
+</div>
+
+@if (_originalDataUrl != null || _resultBytes != null)
+{
+    <div class="images-row">
+        @if (_originalDataUrl != null)
+        {
+            <figure>
+                <img src="@_originalDataUrl" alt="Оригинал" />
+                <figcaption>Оригинал</figcaption>
+            </figure>
+        }
+        @if (_resultBytes != null)
+        {
+            <figure>
+                <img src="@_resultDataUrl" alt="Результат" />
+                <figcaption>@_appliedFilterLabel</figcaption>
+                <button class="btn-download" @onclick="Download">Скачать результат</button>
+            </figure>
+        }
+    </div>
+}
+
+@code {
+    private const long MaxBytes = 10 * 1024 * 1024;
+
+    private static readonly HashSet<string> AllowedMime = ["image/png", "image/jpeg"];
+
+    private static readonly Dictionary<string, string> FilterLabels = new()
+    {
+        ["invert"]    = "Инверсия",
+        ["grayscale"] = "Оттенки серого",
+        ["blur"]      = "Размытие",
+    };
+
+    private IBrowserFile? _file;
+    private byte[]? _originalBytes;
+    private string? _originalMimeType;
+    private string? _originalDataUrl;
+
+    private byte[]? _resultBytes;
+    private string? _resultDataUrl;
+    private string? _appliedFilterLabel;
+
+    private string _filter = "invert";
+    private int _blurStrength = 5;
+    private bool _busy;
+    private string? _error;
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _originalDataUrl = null;
+        _resultBytes = null;
+        _resultDataUrl = null;
+        _originalBytes = null;
+        _file = null;
+
+        var file = e.File;
+        var mime = file.ContentType.ToLowerInvariant();
+
+        if (!AllowedMime.Contains(mime))
+        {
+            _error = $"Неподдерживаемый формат «{file.ContentType}». Выберите PNG или JPEG.";
+            return;
+        }
+
+        using var stream = file.OpenReadStream(MaxBytes);
+        _originalBytes = new byte[file.Size];
+        await stream.ReadExactlyAsync(_originalBytes);
+
+        _file = file;
+        _originalMimeType = mime;
+        _originalDataUrl = $"data:{mime};base64,{Convert.ToBase64String(_originalBytes)}";
+    }
+
+    private async Task ApplyFilter()
+    {
+        if (_originalBytes == null || _file == null) return;
+
+        _busy = true;
+        _error = null;
+        _resultBytes = null;
+        _resultDataUrl = null;
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+
+            var part = new ByteArrayContent(_originalBytes);
+            part.Headers.ContentType = new(_originalMimeType!);
+            content.Add(part, "file", _file.Name);
+            content.Add(new StringContent(_filter), "filter");
+            if (_filter == "blur")
+                content.Add(new StringContent(_blurStrength.ToString()), "blurstrength");
+
+            var response = await Http.PostAsync("api/images/process", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка {(int)response.StatusCode}: {body}";
+                return;
+            }
+
+            _resultBytes = await response.Content.ReadAsByteArrayAsync();
+            _resultDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_resultBytes)}";
+            _appliedFilterLabel = FilterLabels.GetValueOrDefault(_filter, _filter);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Ошибка запроса: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task Download()
+    {
+        if (_resultBytes == null) return;
+        var fileName = $"{_filter}.png";
+        await JS.InvokeVoidAsync("imageInterop.downloadFile", fileName, _resultBytes);
+    }
+}

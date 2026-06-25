@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+
+# Windows-скомпилированные бинарники не нужны в Linux-образе.
+# Нативная библиотека компилируется внутри Dockerfile через g++.
+**/*.dll
+x64/
+x86/
+
+# Тестовые и фронтенд-проекты не входят в образ API
+ImageProcessor.Tests.Unit/
+ImageProcessor.Tests.Integration/
+ImageProcessor.Web/
+ImageProcessor.SmokeTest/

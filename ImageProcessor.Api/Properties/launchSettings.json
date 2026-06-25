@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "ImageProcessor.Api": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "hotReloadEnabled": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_MODIFIABLE_ASSEMBLIES": ""
+      },
+      "applicationUrl": "https://localhost:60757"
+    }
+  }
+}

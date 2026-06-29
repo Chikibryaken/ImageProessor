@@ -22,9 +22,11 @@ builder.Services.AddSingleton<ImageProcessingService>();
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
-app.MapGet("/", () => Results.Redirect("/swagger"));
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseCors();
 
@@ -40,13 +42,14 @@ app.MapPost("/api/images/process", async (
         return Results.BadRequest("Файл не загружен или пустой.");
 
     if (string.IsNullOrWhiteSpace(request.Filter))
-        return Results.BadRequest("Фильтр не указан. Допустимые значения: invert, grayscale, blur.");
+        return Results.BadRequest("Фильтр не указан.");
 
     try
     {
         await using var stream = request.File.OpenReadStream();
-        int iterations = Math.Clamp(request.BlurStrength ?? 5, 1, 20);
-        byte[] resultPng = await svc.ProcessAsync(stream, request.Filter, iterations);
+        float intensity = request.Intensity ?? 1.0f;
+        int blurIterations = Math.Clamp(request.BlurStrength ?? 5, 1, 20);
+        byte[] resultPng = await svc.ProcessAsync(stream, request.Filter, intensity, blurIterations);
         return Results.File(resultPng, contentType: "image/png", fileDownloadName: "processed.png");
     }
     catch (ArgumentException ex)
@@ -75,4 +78,5 @@ public class ProcessRequest
     public IFormFile? File { get; set; }
     public string? Filter { get; set; }
     public int? BlurStrength { get; set; }
+    public float? Intensity { get; set; }
 }

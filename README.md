@@ -1,5 +1,7 @@
 # ImageProcessor
 
+[![Deploy Blazor WASM](https://github.com/Chikibryaken/ImageProessor/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/Chikibryaken/ImageProessor/actions/workflows/deploy-web.yml)
+
 A web image processing service with a C++ native core, exposed through ASP.NET Core and consumed by a Blazor WebAssembly frontend.
 
 ## Live Demo
@@ -17,7 +19,7 @@ Ten real-time filters applied server-side via C++ pixel operations:
 | Grayscale | BT.601 luminance conversion |
 | Sepia | Classic sepia tone matrix |
 | Blur | Iterative 3×3 box blur |
-| Sharpen | 5-tap convolution kernel |
+| Sharpen | Bidirectional: sharpening (+1…+5 passes) or softening (−1…−5 blur passes) |
 | Brightness | Multiply RGB by a factor (0.1–3.0) |
 | Contrast | Stretch values around midpoint 128 |
 | Pixelate | Block-average downsampling |
@@ -54,7 +56,7 @@ Ten real-time filters applied server-side via C++ pixel operations:
 
 ## Why C++?
 
-Pixel operations iterate over millions of bytes per image. C++ compiled with `-O2` produces direct machine instructions with no GC pressure or JIT overhead. The project also demonstrates end-to-end native interop: writing platform-native code, exporting it with `extern "C"`, and consuming it from managed .NET via P/Invoke — a pattern used in production for FFmpeg, OpenCV, and LAPACK bindings.
+Pixel operations iterate over millions of bytes per image. C++ compiled with `-O2` produces direct machine instructions with no GC pressure or JIT overhead. The project also demonstrates end-to-end native interop: writing platform-native code, exporting it with `extern "C"`, and consuming it from managed .NET via P/Invoke - a pattern used in production for FFmpeg, OpenCV, and LAPACK bindings.
 
 ## Run Locally
 
@@ -84,10 +86,14 @@ The API is available at `http://localhost:8080`. The Blazor frontend is deployed
 ## Architecture Decisions
 
 **Why P/Invoke instead of a separate microservice?**
-P/Invoke is a direct in-process function call — zero network latency, no serialization, no extra deployment unit. For CPU-bound binary operations this is the right boundary.
+P/Invoke is a direct in-process function call - zero network latency, no serialization, no extra deployment unit. For CPU-bound binary operations this is the right boundary.
 
 **Why Minimal API instead of Controllers?**
-Three endpoints don't justify MVC infrastructure. A Minimal API endpoint is a single lambda — easier to read, easier to test via `WebApplicationFactory`, less indirection.
+Three endpoints don't justify MVC infrastructure. A Minimal API endpoint is a single lambda - easier to read, easier to test via `WebApplicationFactory`, less indirection.
 
 **Why Singleton for `ImageProcessingService`?**
 The service holds no per-request state. Singleton avoids allocation on every request. `NativeImageProcessor` wraps stateless P/Invoke calls and is equally safe as a singleton.
+
+## Preview 
+
+![preview](docs/preview.png)

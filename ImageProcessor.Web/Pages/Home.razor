@@ -2,93 +2,466 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-<h1>Обработка изображений</h1>
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+        background: #0f0f0f;
+        color: #e5e5e5;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    #app { max-width: none; margin: 0; padding: 0; }
+
+    .app-header {
+        padding: 1rem 2rem;
+        border-bottom: 1px solid #2a2a2a;
+    }
+
+    .logo {
+        font-size: 1.05rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+
+    .error-banner {
+        max-width: 860px;
+        margin: 1rem auto 0;
+        padding: 0 1.5rem;
+    }
+
+    .error-inner {
+        background: #1f1010;
+        border: 1px solid #5a1a1a;
+        border-left: 3px solid #ef4444;
+        color: #fca5a5;
+        padding: 0.75rem 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+    }
+
+    .main {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .section-label {
+        font-size: 0.7rem;
+        font-weight: 500;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.6rem;
+    }
+
+    .upload-zone {
+        display: block;
+        border: 2px dashed #2a2a2a;
+        border-radius: 12px;
+        padding: 2.5rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+        position: relative;
+    }
+
+    .upload-zone:not(.upload-disabled):hover {
+        border-color: #6366f1;
+        background: rgba(99, 102, 241, 0.04);
+    }
+
+    .upload-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+    .upload-icon { font-size: 1.75rem; display: block; margin-bottom: 0.5rem; color: #555; }
+
+    .upload-text {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #ccc;
+        margin-bottom: 0.2rem;
+    }
+
+    .upload-hint { display: block; font-size: 0.78rem; color: #555; }
+
+    .upload-selected {
+        display: block;
+        font-size: 0.82rem;
+        color: #6366f1;
+        font-weight: 500;
+        margin-top: 0.6rem;
+    }
+
+    .file-input-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .filter-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+    .filter-tag {
+        padding: 0.35rem 0.85rem;
+        border: 1px solid #2a2a2a;
+        border-radius: 20px;
+        background: transparent;
+        color: #888;
+        font-size: 0.8rem;
+        font-family: inherit;
+        cursor: pointer;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+        white-space: nowrap;
+    }
+
+    .filter-tag:hover:not(:disabled) { border-color: #6366f1; color: #e5e5e5; }
+
+    .filter-tag.active {
+        background: #6366f1;
+        border-color: #6366f1;
+        color: #fff;
+        font-weight: 500;
+    }
+
+    .filter-tag:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .slider-card {
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+    }
+
+    .slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        font-size: 0.85rem;
+        color: #ccc;
+    }
+
+    .slider-hint { color: #555; font-size: 0.72rem; font-weight: 400; margin-left: 0.4rem; }
+
+    .slider-value { font-weight: 600; color: #6366f1; }
+
+    .slider-endpoints {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.7rem;
+        color: #555;
+        margin-top: 0.35rem;
+    }
+
+    .slider {
+        width: 100%;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 3px;
+        border-radius: 2px;
+        background: #2a2a2a;
+        outline: none;
+        cursor: pointer;
+    }
+
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: #6366f1;
+        cursor: pointer;
+        transition: transform 0.1s;
+    }
+
+    .slider::-webkit-slider-thumb:hover { transform: scale(1.25); }
+
+    .slider::-moz-range-thumb {
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background: #6366f1;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-apply {
+        width: 100%;
+        padding: 0.85rem;
+        background: #6366f1;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.92rem;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-apply:hover:not(:disabled) { background: #818cf8; }
+    .btn-apply:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .spinner {
+        width: 15px;
+        height: 15px;
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        flex-shrink: 0;
+    }
+
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    .results-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .result-card {
+        background: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .result-card img { width: 100%; display: block; }
+
+    .card-footer {
+        padding: 0.65rem 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid #2a2a2a;
+    }
+
+    .card-label { font-size: 0.78rem; color: #888; font-weight: 500; }
+
+    .card-label-preview {
+        font-size: 0.78rem;
+        color: #6366f1;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .preview-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #6366f1;
+        animation: pulse 1.2s ease-in-out infinite;
+        flex-shrink: 0;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+
+    .btn-download {
+        padding: 0.3rem 0.7rem;
+        background: transparent;
+        border: 1px solid #6366f1;
+        border-radius: 5px;
+        color: #6366f1;
+        font-size: 0.75rem;
+        font-family: inherit;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-download:hover { background: #6366f1; color: #fff; }
+
+    @@media (max-width: 600px) {
+        .results-grid { grid-template-columns: 1fr; }
+        .main { padding: 1.25rem 1rem; }
+        .app-header { padding: 0.85rem 1rem; }
+    }
+</style>
+
+<div class="app-header">
+    <span class="logo">ImageProcessor</span>
+</div>
 
 @if (_error != null)
 {
-    <div class="error-box" role="alert">@_error</div>
+    <div class="error-banner">
+        <div class="error-inner">@_error</div>
+    </div>
 }
 
-<div class="controls">
-    <InputFile OnChange="OnFileSelected" accept=".png,.jpg,.jpeg" disabled="@_busy" />
+<main class="main">
+    <div>
+        <p class="section-label">Изображение</p>
+        <label class="upload-zone @(_busy ? "upload-disabled" : "")">
+            <span class="upload-icon">↑</span>
+            <span class="upload-text">Перетащите файл или нажмите для выбора</span>
+            <span class="upload-hint">PNG, JPEG · до 10 МБ</span>
+            @if (_file != null)
+            {
+                <span class="upload-selected">@_file.Name</span>
+            }
+            <InputFile OnChange="OnFileSelected" accept=".png,.jpg,.jpeg"
+                       disabled="@_busy" class="file-input-hidden" />
+        </label>
+    </div>
 
-    <select @bind="_filter" @bind:after="OnFilterChanged" disabled="@_busy" class="filter-select">
-        <option value="invert">Инверсия</option>
-        <option value="grayscale">Оттенки серого</option>
-        <option value="sepia">Сепия</option>
-        <option value="blur">Размытие</option>
-        <option value="sharpen">Резкость</option>
-        <option value="brightness">Яркость</option>
-        <option value="contrast">Контраст</option>
-        <option value="pixelate">Пикселизация</option>
-        <option value="flip-horizontal">Отражение по горизонтали</option>
-        <option value="flip-vertical">Отражение по вертикали</option>
-    </select>
+    <div>
+        <p class="section-label">Фильтр</p>
+        <div class="filter-tags">
+            @foreach (var kvp in FilterLabels)
+            {
+                var key = kvp.Key;
+                <button class="filter-tag @(_filter == key ? "active" : "")"
+                        @onclick="async () => await SelectFilter(key)"
+                        disabled="@_busy">
+                    @kvp.Value
+                </button>
+            }
+        </div>
+    </div>
 
     @if (_filter == "blur")
     {
-        <label class="blur-strength">
-            Сила: <span>@_blurStrength</span>
-            <input type="range" min="1" max="20" @bind="_blurStrength" @bind:event="oninput" />
-        </label>
+        <div class="slider-card">
+            <div class="slider-header">
+                <span>Сила размытия</span>
+                <span class="slider-value">@_blurStrength</span>
+            </div>
+            <input type="range" class="slider" min="1" max="20"
+                   value="@_blurStrength"
+                   @oninput="OnBlurInput" />
+        </div>
     }
 
     @if (_filter == "brightness")
     {
-        <label class="intensity-label">
-            Яркость: <span>@_intensity.ToString("F1", CultureInfo.InvariantCulture)</span>
-            <input type="range" min="0.1" max="3.0" step="0.1"
-                   @bind="_intensity" @bind:event="oninput"
-                   @bind:culture="CultureInfo.InvariantCulture" />
-        </label>
+        <div class="slider-card">
+            <div class="slider-header">
+                <span>Яркость</span>
+                <span class="slider-value">@_intensity.ToString("F1", CultureInfo.InvariantCulture)×</span>
+            </div>
+            <input type="range" class="slider" min="0.1" max="3.0" step="0.1"
+                   value="@(_intensity.ToString("F1", CultureInfo.InvariantCulture))"
+                   @oninput="OnIntensityInput" />
+        </div>
     }
 
     @if (_filter == "contrast")
     {
-        <label class="intensity-label">
-            Контраст: <span>@_intensity.ToString("F1", CultureInfo.InvariantCulture)</span>
-            <input type="range" min="0.1" max="3.0" step="0.1"
-                   @bind="_intensity" @bind:event="oninput"
-                   @bind:culture="CultureInfo.InvariantCulture" />
-        </label>
+        <div class="slider-card">
+            <div class="slider-header">
+                <span>Контраст</span>
+                <span class="slider-value">@_intensity.ToString("F1", CultureInfo.InvariantCulture)×</span>
+            </div>
+            <input type="range" class="slider" min="0.1" max="3.0" step="0.1"
+                   value="@(_intensity.ToString("F1", CultureInfo.InvariantCulture))"
+                   @oninput="OnIntensityInput" />
+        </div>
+    }
+
+    @if (_filter == "sharpen")
+    {
+        <div class="slider-card">
+            <div class="slider-header">
+                <span>Резкость <small class="slider-hint">смягчение ← → усиление</small></span>
+                <span class="slider-value">
+                    @((int)_intensity > 0 ? $"+{(int)_intensity}" : $"{(int)_intensity}")
+                </span>
+            </div>
+            <input type="range" class="slider" min="-5" max="5" step="1"
+                   value="@((int)_intensity)"
+                   @oninput="OnIntensityInput" />
+            <div class="slider-endpoints">
+                <span>−5 (размытие)</span>
+                <span>0</span>
+                <span>+5 (резкость)</span>
+            </div>
+        </div>
     }
 
     @if (_filter == "pixelate")
     {
-        <label class="intensity-label">
-            Размер блока: <span>@((int)_intensity)</span>
-            <input type="range" min="5" max="50" step="5"
-                   @bind="_intensity" @bind:event="oninput"
-                   @bind:culture="CultureInfo.InvariantCulture" />
-        </label>
+        <div class="slider-card">
+            <div class="slider-header">
+                <span>Размер блока</span>
+                <span class="slider-value">@((int)_intensity) px</span>
+            </div>
+            <input type="range" class="slider" min="5" max="50" step="5"
+                   value="@((int)_intensity)"
+                   @oninput="OnIntensityInput" />
+        </div>
     }
 
-    <button class="btn-apply" @onclick="ApplyFilter"
-            disabled="@(_originalBytes == null || _busy)">
-        @(_busy ? "Обработка..." : "Применить фильтр")
+    <button class="btn-apply" @onclick="CommitFilter"
+            disabled="@(_previewBytes == null || _busy)">
+        @if (_busy)
+        {
+            <span class="spinner"></span>
+            <span>Обработка...</span>
+        }
+        else
+        {
+            <span>Применить фильтр</span>
+        }
     </button>
-</div>
 
-@if (_originalDataUrl != null || _resultBytes != null)
-{
-    <div class="images-row">
-        @if (_originalDataUrl != null)
-        {
-            <figure>
+    @if (_originalDataUrl != null)
+    {
+        <div class="results-grid">
+            <div class="result-card">
                 <img src="@_originalDataUrl" alt="Оригинал" />
-                <figcaption>Оригинал</figcaption>
-            </figure>
-        }
-        @if (_resultBytes != null)
-        {
-            <figure>
-                <img src="@_resultDataUrl" alt="Результат" />
-                <figcaption>@_appliedFilterLabel</figcaption>
-                <button class="btn-download" @onclick="Download">Скачать результат</button>
-            </figure>
-        }
-    </div>
-}
+                <div class="card-footer">
+                    <span class="card-label">Оригинал</span>
+                </div>
+            </div>
+            <div class="result-card">
+                @if (_previewDataUrl != null)
+                {
+                    <img src="@_previewDataUrl" alt="Предпросмотр" />
+                }
+                <div class="card-footer">
+                    @if (_busy)
+                    {
+                        <span class="card-label-preview">
+                            <span class="preview-dot"></span>
+                            Обработка...
+                        </span>
+                    }
+                    else if (_previewDataUrl != null)
+                    {
+                        <span class="card-label-preview">
+                            <span class="preview-dot"></span>
+                            @_previewLabel
+                        </span>
+                        <button class="btn-download" @onclick="Download">Скачать</button>
+                    }
+                    else
+                    {
+                        <span class="card-label">Предпросмотр</span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</main>
 
 @code {
     private const long MaxBytes = 10 * 1024 * 1024;
@@ -114,9 +487,12 @@
     private string? _originalMimeType;
     private string? _originalDataUrl;
 
-    private byte[]? _resultBytes;
-    private string? _resultDataUrl;
-    private string? _appliedFilterLabel;
+    private byte[]? _workingBytes;
+    private string _workingMimeType = "image/png";
+
+    private byte[]? _previewBytes;
+    private string? _previewDataUrl;
+    private string? _previewLabel;
 
     private string _filter = "invert";
     private int _blurStrength = 5;
@@ -124,18 +500,132 @@
     private bool _busy;
     private string? _error;
 
+    private CancellationTokenSource? _previewCts;
+
+    private async Task SelectFilter(string filter)
+    {
+        _filter = filter;
+        OnFilterChanged();
+        await TriggerPreview();
+    }
+
     private void OnFilterChanged()
     {
-        _intensity = _filter == "pixelate" ? 10f : 1.0f;
+        _intensity = _filter switch
+        {
+            "pixelate" => 10f,
+            "sharpen"  => 1f,
+            _          => 1.0f,
+        };
+    }
+
+    private async Task OnBlurInput(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var v))
+            _blurStrength = v;
+        await TriggerPreview();
+    }
+
+    private async Task OnIntensityInput(ChangeEventArgs e)
+    {
+        if (float.TryParse(e.Value?.ToString(), NumberStyles.Float,
+                           CultureInfo.InvariantCulture, out var v))
+            _intensity = v;
+        await TriggerPreview();
+    }
+
+    private async Task TriggerPreview()
+    {
+        _previewCts?.Cancel();
+        _previewCts = new CancellationTokenSource();
+        var token = _previewCts.Token;
+        try
+        {
+            await Task.Delay(280, token);
+            await FetchPreview(token);
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task FetchPreview(CancellationToken token = default)
+    {
+        if (_workingBytes == null) return;
+
+        _busy = true;
+        StateHasChanged();
+
+        try
+        {
+            using var content = BuildRequest();
+            var response = await Http.PostAsync("api/images/process", content, token);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _previewBytes = await response.Content.ReadAsByteArrayAsync(token);
+                _previewDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_previewBytes)}";
+                _previewLabel = FilterLabels.GetValueOrDefault(_filter, _filter);
+                _error = null;
+            }
+            else
+            {
+                _error = $"Ошибка {(int)response.StatusCode}: " +
+                         await response.Content.ReadAsStringAsync(token);
+            }
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            _error = "API не ответил за 20 секунд. Проверьте, что сервер запущен.";
+        }
+        catch (OperationCanceledException) { throw; }
+        catch (HttpRequestException)
+        {
+            _error = "Не удалось подключиться к API. Проверьте, что сервер запущен.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            _busy = false;
+            StateHasChanged();
+        }
+    }
+
+    private MultipartFormDataContent BuildRequest()
+    {
+        var content = new MultipartFormDataContent();
+        var part = new ByteArrayContent(_workingBytes!);
+        part.Headers.ContentType = new(_workingMimeType);
+        content.Add(part, "file", _file?.Name ?? "image.png");
+        content.Add(new StringContent(_filter), "filter");
+
+        if (_filter == "blur")
+            content.Add(new StringContent(_blurStrength.ToString()), "blurstrength");
+
+        if (_filter is "brightness" or "contrast" or "pixelate" or "sharpen")
+            content.Add(new StringContent(
+                _intensity.ToString(CultureInfo.InvariantCulture)), "intensity");
+
+        return content;
+    }
+
+    private void CommitFilter()
+    {
+        if (_previewBytes == null) return;
+        _workingBytes = _previewBytes;
+        _workingMimeType = "image/png";
     }
 
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
+        _previewCts?.Cancel();
         _error = null;
         _originalDataUrl = null;
-        _resultBytes = null;
-        _resultDataUrl = null;
+        _previewBytes = null;
+        _previewDataUrl = null;
         _originalBytes = null;
+        _workingBytes = null;
         _file = null;
 
         var file = e.File;
@@ -153,61 +643,16 @@
 
         _file = file;
         _originalMimeType = mime;
+        _workingMimeType = mime;
         _originalDataUrl = $"data:{mime};base64,{Convert.ToBase64String(_originalBytes)}";
-    }
+        _workingBytes = _originalBytes;
 
-    private async Task ApplyFilter()
-    {
-        if (_originalBytes == null || _file == null) return;
-
-        _busy = true;
-        _error = null;
-        _resultBytes = null;
-        _resultDataUrl = null;
-
-        try
-        {
-            using var content = new MultipartFormDataContent();
-
-            var part = new ByteArrayContent(_originalBytes);
-            part.Headers.ContentType = new(_originalMimeType!);
-            content.Add(part, "file", _file.Name);
-            content.Add(new StringContent(_filter), "filter");
-
-            if (_filter == "blur")
-                content.Add(new StringContent(_blurStrength.ToString()), "blurstrength");
-
-            if (_filter is "brightness" or "contrast" or "pixelate")
-                content.Add(new StringContent(
-                    _intensity.ToString(CultureInfo.InvariantCulture)), "intensity");
-
-            var response = await Http.PostAsync("api/images/process", content);
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка {(int)response.StatusCode}: {body}";
-                return;
-            }
-
-            _resultBytes = await response.Content.ReadAsByteArrayAsync();
-            _resultDataUrl = $"data:image/png;base64,{Convert.ToBase64String(_resultBytes)}";
-            _appliedFilterLabel = FilterLabels.GetValueOrDefault(_filter, _filter);
-        }
-        catch (Exception ex)
-        {
-            _error = $"Ошибка запроса: {ex.Message}";
-        }
-        finally
-        {
-            _busy = false;
-        }
+        await TriggerPreview();
     }
 
     private async Task Download()
     {
-        if (_resultBytes == null) return;
-        var fileName = $"{_filter}.png";
-        await JS.InvokeVoidAsync("imageInterop.downloadFile", fileName, _resultBytes);
+        if (_previewBytes == null) return;
+        await JS.InvokeVoidAsync("imageInterop.downloadFile", $"{_filter}.png", _previewBytes);
     }
 }

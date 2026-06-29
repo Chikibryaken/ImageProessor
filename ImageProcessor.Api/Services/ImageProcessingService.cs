@@ -60,7 +60,12 @@ public sealed class ImageProcessingService
                 _native.Sepia(pixels, pixels.Length);
                 break;
             case "sharpen":
-                _native.Sharpen(pixels, image.Width, image.Height);
+                int sharpenLevel = (int)intensity;
+                if (sharpenLevel > 0)
+                    for (int i = 0; i < Math.Min(sharpenLevel, 5); i++)
+                        _native.Sharpen(pixels, image.Width, image.Height);
+                else if (sharpenLevel < 0)
+                    _native.Blur(pixels, image.Width, image.Height, Math.Min(-sharpenLevel, 5));
                 break;
             case "pixelate":
                 _native.Pixelate(pixels, image.Width, image.Height, (int)intensity);

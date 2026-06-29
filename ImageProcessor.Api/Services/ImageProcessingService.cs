@@ -32,12 +32,15 @@ public sealed class ImageProcessingService
 
     private void ApplyFilter(Image<Rgba32> image, string filter, float intensity, int blurIterations)
     {
-        if (!image.DangerousTryGetSinglePixelMemory(out Memory<Rgba32> pixelMemory))
-            throw new InvalidOperationException(
-                "ImageSharp не смог предоставить непрерывный блок памяти для пикселей.");
+        int stride = image.Width * 4;
+        byte[] pixels = new byte[image.Height * stride];
 
-        Span<byte> pixelBytes = MemoryMarshal.AsBytes(pixelMemory.Span);
-        byte[] pixels = pixelBytes.ToArray();
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < accessor.Height; y++)
+                MemoryMarshal.AsBytes(accessor.GetRowSpan(y))
+                             .CopyTo(pixels.AsSpan(y * stride));
+        });
 
         switch (filter.ToLowerInvariant())
         {
@@ -80,6 +83,11 @@ public sealed class ImageProcessingService
                 throw new ArgumentException($"Неизвестный фильтр: '{filter}'.", nameof(filter));
         }
 
-        new ReadOnlySpan<byte>(pixels).CopyTo(pixelBytes);
+        image.ProcessPixelRows(accessor =>
+        {
+            for (int y = 0; y < accessor.Height; y++)
+                pixels.AsSpan(y * stride, stride)
+                      .CopyTo(MemoryMarshal.AsBytes(accessor.GetRowSpan(y)));
+        });
     }
 }
